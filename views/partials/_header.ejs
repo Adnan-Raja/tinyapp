@@ -9,22 +9,28 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+        
+       
       </div>
+      
     </div>
     <main style="margin: 1em;">
-      <%if(!username){ %>
-        <form method="POST" action="/login">
-          <label for="username"></label>
-          <input type="text" placeholder="username" name="username" />
-          <button width=10px type="submit" class="btn btn-primary">Login</button>
+      <% if(user) { %>
+        <form method="POST" action="/logout">
+          <%= `Logged in as: ${user.email}!` %>
+          <button type="logout" class="btn btn-outline-dark">Logout</button>
         </form>
-        <% } else { %>
-          <form method="POST" action="/logout">
-            <label> You are loggedin as: <%= username %> </label>
-            <button width=10px type="submit" class="btn btn-primary">logout</button>
-          </form>
-          <% } %>
+        <% } %>
+        <%if (!user) { %>
+          <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+            <div class="navbar-nav">
+              <a class="nav-item nav-link" href="/login">Login</a>
+              <a class="nav-item nav-link" href="/register">Register</a>
+            </div>
+            
+          </div>
+          
+            <% } %>
     </main>
   </nav>
-
 </header>
