@@ -48,9 +48,10 @@ const users = {
 
 
 // helper function to authnticate user
-const confirmPassword = (password, db) => {
+const confirmPassword = (email,password, db) => {
   for(let key in db) {
-    if (db[key]["password"] === password) {
+    const passwordMatch = bcrypt.compareSync(password, db[key]["password"]);
+    if (passwordMatch) {
     return true
     }
   }
@@ -136,7 +137,7 @@ app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   
-  const authenticPass = confirmPassword(password, users)
+  const authenticPass = confirmPassword(email, password, users)
   const potentialUser = fetchUserInformation(email, users);
   //check if user exists in database
   if (!potentialUser) {
@@ -258,8 +259,8 @@ const hashedPassword = bcrypt.hashSync(password, 10);
   users[id] = {
        id: id,
        email: req.body.email,
-       password: req.body.password,
-       hashedPassword: bcrypt.hashSync(password, 10) 
+       password: bcrypt.hashSync(password, 10)
+     //  hashedPassword: bcrypt.hashSync(password, 10) 
   };
    console.log(users); // check
   res.cookie('user_id', id)
