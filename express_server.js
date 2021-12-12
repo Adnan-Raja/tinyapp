@@ -2,11 +2,21 @@ const express = require("express");
 const app = express();
 const PORT = 8080;
 const bcrypt = require('bcryptjs');
+const cookieSession = require("cookie-session");
+const cookieParser = require('cookie-parser');
 
 app.set("view engine", "ejs");
 
-const cookieParser = require('cookie-parser');
+
 app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: [
+    "This one a secure key",
+    "This is more secure"
+  ],
+   maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 
 function generateRandomString() {
   let result = '';
@@ -48,7 +58,7 @@ const users = {
 
 
 // helper function to authnticate user
-const confirmPassword = (email,password, db) => {
+const confirmPassword = (password, db) => {
   for(let key in db) {
     const passwordMatch = bcrypt.compareSync(password, db[key]["password"]);
     if (passwordMatch) {
@@ -59,7 +69,7 @@ const confirmPassword = (email,password, db) => {
 };
 
 // helper function to see if email already registered
-const fetchUserInformation = (email, db) => {
+const getUserByEmail = (email, db) => {
   for(let key in db) {
     if (db[key]["email"] === email) {
     return true
@@ -116,7 +126,7 @@ app.post("/urls", (req, res) => {
   urlDatabase[shortURL] = {
     shortURL,
     longURL: req.body.longURL,
-    userID: req.cookies.user_id
+    userID: req.session.user_id
   };
   
   res.redirect(`/urls/${shortURL}`);         
@@ -125,8 +135,8 @@ app.post("/urls", (req, res) => {
 // Set cookie from login form
 app.get("/login", (req, res) => {
   const templateVars = { 
-   //urls: urlsForUser(urlDatabase, req.cookies.user_id),
-    user: users[req.cookies.user_id]
+   //urls: urlsForUser(urlDatabase, req.session.user_id),
+    user: users[req.session.user_id]
   };
  res.render("urls_login", templateVars);
 });
@@ -137,8 +147,8 @@ app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   
-  const authenticPass = confirmPassword(email, password, users)
-  const potentialUser = fetchUserInformation(email, users);
+  const authenticPass = confirmPassword(password, users)
+  const potentialUser = getUserByEmail(email, users);
   //check if user exists in database
   if (!potentialUser) {
     res.status(403);
@@ -149,15 +159,15 @@ app.post("/login", (req, res) => {
     res.send('Error: Wrong password.');
     return res.redirect("/");
   } else {
-  const realUserID = fetchUserInformationID(email, users)
-  res.cookie('user_id', realUserID["id"])
+  const realUserID = fetchUserInformationID(email, users);
+  req.session.user_id = realUserID["id"];
   res.redirect("/urls");   
   }      
 });
 
 // Clear username cookie
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id')
+  delete req.session.user_id
   res.redirect("/login")
 });
 
@@ -180,7 +190,7 @@ app.get("/hello", (req, res) => {
 
 // URLS pages
 app.get("/urls", (req, res) => {
-  const id = req.cookies.user_id;
+  const id = req.session.user_id;
  const user = users[id];
 //  console.log(user)
 //  console.log(id)
@@ -198,7 +208,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-const id = req.cookies.user_id;
+const id = req.session.user_id;
 const user = users[id];
 
  if(!user) {
@@ -213,7 +223,7 @@ const templateVars = {
 
 
 app.get("/urls/:shortURL", (req, res) => {
- const id = req.cookies.user_id;
+ const id = req.session.user_id;
  const user = users[id];
  const templateVars = { 
   shortURL: req.params.shortURL, 
@@ -224,7 +234,7 @@ app.get("/urls/:shortURL", (req, res) => {
 
 // Registration page
 app.get("/register", (req, res) => {
-  if(req.cookies.user_id) {
+  if(req.session.user_id) {
     res.redirect("/urls")
   }
     res.render("urls_register", {user:null});
@@ -245,7 +255,7 @@ const hashedPassword = bcrypt.hashSync(password, 10);
   }
 
   // Check if there is already a user with email
-  const currentUser = fetchUserInformation(email, users);
+  const currentUser = getUserByEmail(email, users);
   if (currentUser) {
     res.status(400);
     res.send('Error: User already exists.');
@@ -262,8 +272,9 @@ const hashedPassword = bcrypt.hashSync(password, 10);
        password: bcrypt.hashSync(password, 10)
      //  hashedPassword: bcrypt.hashSync(password, 10) 
   };
-   console.log(users); // check
-  res.cookie('user_id', id)
+   //console.log(users); // check
+  // Add cookie for email
+  req.session.user_id = id;
   res.redirect("/urls")    
 }
 });
