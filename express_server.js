@@ -4,9 +4,9 @@ const PORT = 8080;
 const bcrypt = require('bcryptjs');
 const cookieSession = require("cookie-session");
 const cookieParser = require('cookie-parser');
+const { getUserByEmail } = require("./helpers.js");
 
 app.set("view engine", "ejs");
-
 
 app.use(cookieParser());
 app.use(cookieSession({
@@ -18,6 +18,8 @@ app.use(cookieSession({
    maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
 
+
+//helper function to generate random number.
 function generateRandomString() {
   let result = '';
   let length = 6;
@@ -27,10 +29,43 @@ function generateRandomString() {
   result += chars[Math.floor(Math.random() * chars.length)];
   return result;
 };
-// const urlDatabase = {
-//   "b2xVn2": "http://www.lighthouselabs.ca",
-//   "9sm5xK": "http://www.google.com"
-// };
+
+// helper function to authnticate user.
+const confirmPassword = (password, db) => {
+  for(let key in db) {
+    const passwordMatch = bcrypt.compareSync(password, db[key]["password"]);
+    if (passwordMatch) {
+    return true
+    }
+  }
+  return false;
+};
+
+// helper function to see if email already registered.
+
+
+//helper function to fetch data by using id.
+const fetchUserInformationID = (email, db) => {
+  for(let key in db) {
+    if (db[key]["email"] === email) {
+    return db[key]
+    }
+  }
+  return false;
+};
+
+//helper function to get urls for specific id.
+const urlsForUserId = function(id) {
+  const result = {};
+  for (const shortURL in urlDatabase) {
+    const urlObj = urlDatabase[shortURL];
+    if (urlObj.userID === id) {
+      result[shortURL] = urlObj;
+    }
+  }
+  return result;
+};
+
 
 const urlDatabase = {
   b6UTxQ: {
@@ -57,46 +92,10 @@ const users = {
 };
 
 
-// helper function to authnticate user
-const confirmPassword = (password, db) => {
-  for(let key in db) {
-    const passwordMatch = bcrypt.compareSync(password, db[key]["password"]);
-    if (passwordMatch) {
-    return true
-    }
-  }
-  return false;
-};
 
-// helper function to see if email already registered
-const getUserByEmail = (email, db) => {
-  for(let key in db) {
-    if (db[key]["email"] === email) {
-    return true
-    }
-  }
-  return false;
-};
 
-const fetchUserInformationID = (email, db) => {
-  for(let key in db) {
-    if (db[key]["email"] === email) {
-    return db[key]
-    }
-  }
-  return false;
-};
 
-const urlsForUserId = function(id) {
-  const result = {};
-  for (const shortURL in urlDatabase) {
-    const urlObj = urlDatabase[shortURL];
-    if (urlObj.userID === id) {
-      result[shortURL] = urlObj;
-    }
-  }
-  return result;
-}
+
 
 const bodyParser = require("body-parser");
 
